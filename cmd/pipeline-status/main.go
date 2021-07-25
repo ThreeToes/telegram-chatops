@@ -42,6 +42,7 @@ type handler struct {
 func (h *handler) handleSns(_ context.Context, e *events.SNSEvent) error {
 	for _, r := range e.Records {
 		_, err := tg.Send(tgbotapi.NewMessage(h.chatId, r.SNS.Message))
+		logrus.Infof("Sending TG message: %s", r.SNS.Message)
 		if err != nil {
 			logrus.Errorf("Could not send notification: %v", err)
 		}

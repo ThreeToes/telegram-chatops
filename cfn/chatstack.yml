@@ -16,6 +16,20 @@ Resources:
     Properties:
       DisplayName: CodePipeline Statuses
       TopicName: CodePipelineStatuses
+  StatusTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Description: Policy for status SNS topic
+    Properties:
+      Topics:
+        - !Ref StatusSnsTopic
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: sns:Publish
+            Resource: !Ref StatusSnsTopic
   StatusLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -23,13 +37,13 @@ Resources:
       Runtime: go1.x
       MemorySize: 128
       Handler: status
-      CodeUri: ./build/status.zip
+      CodeUri: ../build/status.zip
       Timeout: 30
       Events:
-        TopicName:
-          Fn::GetAtt:
-            - StatusSnsTopic
-            - TopicName
+        SnsEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref StatusSnsTopic
       Environment:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
