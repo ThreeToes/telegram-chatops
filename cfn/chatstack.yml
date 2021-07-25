@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Set up the Telegram bot stack
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  TelegramToken:
+    Type: String
+    Description: Telegram bot token
+    NoEcho: true
+  TelegramChatId:
+    Type: String
+    Description: Telegram channel ID to send alerts to
+Resources:
+  StatusSnsTopic:
+    Type: AWS::SNS::Topic
+    Description: SNS topic for the CodePipeline events
+    Properties:
+      DisplayName: CodePipeline Statuses
+      TopicName: CodePipelineStatuses
+  StatusLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to handle CodePipeline events
+      Runtime: go1.x
+      MemorySize: 128
+      Handler: status
+      CodeUri: ./build/status.zip
+      Timeout: 30
+      Events:
+        TopicName:
+          Fn::GetAtt:
+            - StatusSnsTopic
+            - TopicName
+      Environment:
+        Variables:
+          TELEGRAM_TOKEN: !Ref TelegramToken
+          CHAT_ID: !Ref TelegramChatId
