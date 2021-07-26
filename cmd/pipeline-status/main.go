@@ -94,15 +94,16 @@ func (h *handler) handleSns(_ context.Context, e *events.SNSEvent) error {
 		//	fmt.Sprintf("%s has changed to %s", ev.Detail.Stage, ev.Detail.State)
 		switch ev.DetailType {
 		case PipelineChangeType:
-			msg = fmt.Sprintf("<strong>Pipeline state change event</strong>\n<pre>%s</pre> changed to <pre>%s</pre>",
+			msg = fmt.Sprintf("<strong>Pipeline state change event</strong>\n" +
+				"<code>%s</code> changed to <code>%s</code>",
 				ev.Detail.Pipeline, ev.Detail.State)
 		case StageChangeType:
 			msg = fmt.Sprintf("<strong>Stage state change event</strong>\n"+
-				"Stage <pre>%s</pre> in <pre>%s</pre> changed to <pre>%s</pre>",
+				"Stage <code>%s</code> in <code>%s</code> changed to <code>%s</code>",
 				ev.Detail.Stage, ev.Detail.Pipeline, ev.Detail.State)
 		case ActionChangeType:
 			msg = fmt.Sprintf("<strong>Action state change event</strong>\n"+
-				"Action <pre>%s</pre>, stage <pre>%s</pre> in <pre>%s</pre> changed to <pre>%s</pre>",
+				"Action <code>%s</code>, stage <code>%s</code> in <code>%s</code> changed to <code>%s</code>",
 				ev.Detail.Action, ev.Detail.Stage, ev.Detail.Pipeline, ev.Detail.State)
 		}
 		logrus.Infof("Sending TG message: %s", msg)
