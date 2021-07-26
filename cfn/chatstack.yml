@@ -25,11 +25,32 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
+          - Sid: StatusNotificationsPolicy
+            Effect: Allow
             Principal:
-              AWS: '*'
+              # CodeStar does the notifications. Thanks for consistency, AWS
+              Service: codestar-notifications.amazonaws.com
+              AWS: !Ref AWS::AccountId
             Action: sns:Publish
             Resource: !Ref StatusSnsTopic
+          - Sid: __default_statement_ID
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Resource: !Ref StatusSnsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceOwner: !Sub ${AWS::AccountId}
   StatusLambda:
     Type: AWS::Serverless::Function
     Properties:
