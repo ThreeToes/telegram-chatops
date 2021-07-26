@@ -37,10 +37,11 @@ Where `rule.json` takes the form of:
   ],
   "Resource": "{Pipeline ARN}",
   "Targets": [
-    {
-      "TargetType": "SNS",
-      "TargetAddress": "{SNS Topic ARN}"
-      ],
+        {
+          "TargetType": "SNS",
+          "TargetAddress": "{SNS Topic ARN}"
+        }
+    ],
     "Status": "ENABLED",
     "DetailType": "FULL"
 }
