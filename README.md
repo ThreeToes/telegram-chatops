@@ -69,3 +69,8 @@ Where `rule.json` takes the form of:
 # Troubleshooting
 ## SNS Topic not receiving messages
 In this case the pipeline's IAM role may not have permission to publish messages to the topic. Add a policy
+to allow the pipeline to publish SNS messages
+
+# Todo
+* Add webhooks so the bot can answer questions about pipeline statuses
+* Add webhooks to subscribe and unsubscribe via the bot itself rather than futzing with AWS
