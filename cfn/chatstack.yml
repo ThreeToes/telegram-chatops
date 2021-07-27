@@ -99,7 +99,7 @@ Resources:
               - 'codepipeline:ListPipelines'
               - 'codepipeline:ListPipelineExecutions'
               - 'codepipeline:GetPipeline'
-              - 'codepipeline:GetPipelineStatus'
+              - 'codepipeline:GetPipelineState'
               - 'codepipeline:GetPipelineExecution'
               - 'codepipeline:StartPipelineExecution'
             Resource: '*'
@@ -120,13 +120,15 @@ Resources:
       Handler: commands
       CodeUri: ../build/commands.zip
       Timeout: 30
+      Policies:
+        - !Ref CommandPolicy
       Events:
         ApiEvent:
-          Type: Api
+          Type: HttpApi
           Properties:
             Path: /
             Method: post
-            RestApiId: !Ref CommandApi
+            ApiId: !Ref CommandApi
       Environment:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
@@ -139,23 +141,18 @@ Resources:
       ValidationMethod: DNS
       DomainName: !Sub ${BotSubDomain}.${BotDomain}
       DomainValidationOptions:
-        - DomainName: !Sub ${BotDomain}
+        - DomainName: !Ref BotDomain
           HostedZoneId: !Ref Route53ZoneId
 
   # API gateway for the command lambda
   CommandApi:
-    Type: AWS::Serverless::Api
+    Type: AWS::Serverless::HttpApi
     Description: API for bot commands
     DependsOn:
       - ApiCertificate
     Properties:
-      Name: TelegramBotApi
-      StageName: default
-      Auth:
-        ApiKeyRequired: false
       Domain:
         CertificateArn: !Ref ApiCertificate
         DomainName: !Sub ${BotSubDomain}.${BotDomain}
         Route53:
           HostedZoneId: !Ref Route53ZoneId
-          DomainName: !Sub ${BotSubDomain}.${BotDomain}

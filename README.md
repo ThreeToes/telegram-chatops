@@ -79,3 +79,7 @@ to allow the pipeline to publish SNS messages
     * Start pipeline execution
     * Get pipeline details
 * Add webhooks to subscribe and unsubscribe via the bot itself rather than futzing with AWS
+
+# Bugs
+## ACM Not creating DNS record in Route 53
+On deployment, Cloudformation isn't properly getting the certificate to validate itself

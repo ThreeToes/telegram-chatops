@@ -32,6 +32,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Could not parse chat ID: %v", err)
 	}
+	logrus.Infof("Using chat ID %d", chatId)
 	tg, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		logrus.Fatalf("Could not instantiate Telegram API: %v", err)
@@ -51,22 +52,37 @@ func main() {
 	lambda.Start(c.handler)
 }
 
-func (c *commandHandler) handler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func (c *commandHandler) handler(ctx context.Context, event *events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
 	var telegramEvent TelegramMessage
 	err := json.Unmarshal([]byte(event.Body), &telegramEvent)
 	logrus.Infof(event.Body)
 	if err != nil {
-		return &events.APIGatewayProxyResponse{ StatusCode: http.StatusInternalServerError}, err
+		return &events.APIGatewayV2HTTPResponse{ StatusCode: http.StatusInternalServerError}, err
 	}
 	if telegramEvent.Message.Chat.ID != c.chatId {
-		return &events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized}, fmt.Errorf("chat ID doesn't match what was configured")
+		return &events.APIGatewayV2HTTPResponse{StatusCode: http.StatusUnauthorized}, fmt.Errorf("chat ID doesn't match what was configured")
 	}
-	return &events.APIGatewayProxyResponse{ StatusCode: http.StatusOK}, nil
+	cmdSplit := strings.SplitN(telegramEvent.Message.Text, " ", 2)
+	if len(cmdSplit) > 0 {
+		switch cmdSplit[0] {
+		case "/list":
+			// List pipelines
+			c.listPipelines(ctx)
+		case "/status":
+			// Get pipeline status
+			break
+		case "/subscriptions":
+			// Manage subscriptions
+			break
+		}
+	}
+	return &events.APIGatewayV2HTTPResponse{ StatusCode: http.StatusOK}, nil
 }
 
 func (c *commandHandler) listPipelines(ctx context.Context) error {
 	pipelines, err := c.codePipeline.ListPipelines(ctx, &codepipeline.ListPipelinesInput{})
 	if err != nil {
+		logrus.Errorf("Could not list pipelines: %v", err)
 		return err
 	}
 	sb := &strings.Builder{}
