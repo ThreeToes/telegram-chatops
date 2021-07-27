@@ -25,7 +25,6 @@ send events to the topic
 
 ```bash
 $ aws codestar-notifications create-notifications-rule --cli-input-json  file://rule.json
-        }
 ```
 
 Where `rule.json` takes the form of:
@@ -47,7 +46,7 @@ Where `rule.json` takes the form of:
 }
 ```
 
-`EventTypeIds` can be one of the following
+`EventTypeIds` can be any combination of the following
 * `codepipeline-pipeline-action-execution-succeeded`
 * `codepipeline-pipeline-action-execution-failed`
 * `codepipeline-pipeline-stage-execution-started`
@@ -74,4 +73,9 @@ to allow the pipeline to publish SNS messages
 
 # Todo
 * Add webhooks so the bot can answer questions about pipeline statuses
+    * Pipeline execution status
+    * List pipelines
+    * Get pipeline statuses
+    * Start pipeline execution
+    * Get pipeline details
 * Add webhooks to subscribe and unsubscribe via the bot itself rather than futzing with AWS

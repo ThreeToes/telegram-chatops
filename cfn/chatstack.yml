@@ -9,13 +9,25 @@ Parameters:
   TelegramChatId:
     Type: String
     Description: Telegram channel ID to send alerts to
+  Route53ZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Hosted zone to bring up the API gateway in
+  BotSubDomain:
+    Type: String
+    Description: Sub domain to put the API gateway on
+    Default: pipelinebot
+  BotDomain:
+    Type: String
+    Description: Domain name
 Resources:
+  # SNS topic which we'll use to push events out
   StatusSnsTopic:
     Type: AWS::SNS::Topic
     Description: SNS topic for the CodePipeline events
     Properties:
       DisplayName: CodePipeline Statuses
       TopicName: CodePipelineStatuses
+  # Topic Policy to allow codestar to publish messages
   StatusTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Description: Policy for status SNS topic
@@ -33,6 +45,7 @@ Resources:
               AWS: !Ref AWS::AccountId
             Action: sns:Publish
             Resource: !Ref StatusSnsTopic
+          # TODO: Can this be locked down more?
           - Sid: __default_statement_ID
             Effect: Allow
             Principal:
@@ -51,6 +64,8 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceOwner: !Sub ${AWS::AccountId}
+
+  # Lambda function that subscribes to the above SNS topic and sends any updates to a Telegram chat
   StatusLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -69,3 +84,78 @@ Resources:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
           CHAT_ID: !Ref TelegramChatId
+
+  # Policy that allows the command lambda to query CodePipeline
+  CommandPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Description: 'Policy for the command lambda'
+    Properties:
+      ManagedPolicyName: "command-lambda-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'codepipeline:ListPipelines'
+              - 'codepipeline:ListPipelineExecutions'
+              - 'codepipeline:GetPipeline'
+              - 'codepipeline:GetPipelineStatus'
+              - 'codepipeline:GetPipelineExecution'
+              - 'codepipeline:StartPipelineExecution'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'codestar-notifications:CreateNotificationRule'
+              - 'codestar-notifications:DeleteNotificationRule'
+              - 'codestar-notifications:ListNotificationRules'
+            Resource: '*'
+
+  # Command lambda function that spins up an API gateway to listen for incoming telegram messages
+  CommandLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to service commands coming in from telegram
+      Runtime: go1.x
+      MemorySize: 128
+      Handler: commands
+      CodeUri: ../build/commands.zip
+      Timeout: 30
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+            RestApiId: !Ref CommandApi
+      Environment:
+        Variables:
+          TELEGRAM_TOKEN: !Ref TelegramToken
+          CHAT_ID: !Ref TelegramChatId
+
+  # Certificate for the command lambda API
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      ValidationMethod: DNS
+      DomainName: !Sub ${BotSubDomain}.${BotDomain}
+      DomainValidationOptions:
+        - DomainName: !Sub ${BotDomain}
+          HostedZoneId: !Ref Route53ZoneId
+
+  # API gateway for the command lambda
+  CommandApi:
+    Type: AWS::Serverless::Api
+    Description: API for bot commands
+    DependsOn:
+      - ApiCertificate
+    Properties:
+      Name: TelegramBotApi
+      StageName: default
+      Auth:
+        ApiKeyRequired: false
+      Domain:
+        CertificateArn: !Ref ApiCertificate
+        DomainName: !Sub ${BotSubDomain}.${BotDomain}
+        Route53:
+          HostedZoneId: !Ref Route53ZoneId
+          DomainName: !Sub ${BotSubDomain}.${BotDomain}
