@@ -141,7 +141,7 @@ Resources:
       ValidationMethod: DNS
       DomainName: !Sub ${BotSubDomain}.${BotDomain}
       DomainValidationOptions:
-        - DomainName: !Ref BotDomain
+        - DomainName: !Sub ${BotSubDomain}.${BotDomain}
           HostedZoneId: !Ref Route53ZoneId
 
   # API gateway for the command lambda
