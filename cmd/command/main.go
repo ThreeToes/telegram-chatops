@@ -81,6 +81,17 @@ func (c *commandHandler) handler(ctx context.Context, event *events.APIGatewayV2
 			if err != nil {
 				logrus.Errorf("could not send message: %v", err)
 			}
+		case "/start":
+			if len(cmdSplit) < 2 {
+				msg := tgbotapi.NewMessage(c.chatId, "Please provide a pipeline name")
+				msg.ReplyToMessageID = telegramEvent.Message.MessageID
+				c.tg.Send(msg)
+				break
+			}
+			err := c.startPipeline(ctx, cmdSplit[1], telegramEvent.Message.MessageID)
+			if err != nil {
+				logrus.Errorf("could not start pipeline: %v", err)
+			}
 		case "/subscriptions":
 			// Manage subscriptions
 			break
@@ -127,6 +138,25 @@ func (c *commandHandler) getPipelineStatus(ctx context.Context, pipelineName str
 	msg := tgbotapi.NewMessage(c.chatId, sb.String())
 	msg.ReplyToMessageID = replyTo
 	msg.ParseMode = tgbotapi.ModeHTML
+	_, err = c.tg.Send(msg)
+	return err
+}
+
+func (c *commandHandler) startPipeline(ctx  context.Context, pipelineName string, replyTo int) error {
+	p, err := c.codePipeline.StartPipelineExecution(ctx, &codepipeline.StartPipelineExecutionInput{
+		Name: aws.String(pipelineName),
+	})
+	if err != nil {
+		logrus.Errorf("Could not get pipeline: %v", err)
+		msg := tgbotapi.NewMessage(c.chatId, fmt.Sprintf("Could not get pipeline `%s`'s status", pipelineName))
+		msg.ParseMode = tgbotapi.ModeMarkdown
+		c.tg.Send(msg)
+		return err
+	}
+	text := fmt.Sprintf("Pipeline <code>%s</code> started. Execution ID: %s", pipelineName, *p.PipelineExecutionId)
+	msg := tgbotapi.NewMessage(c.chatId, text)
+	msg.ParseMode = tgbotapi.ModeHTML
+	msg.ReplyToMessageID = replyTo
 	_, err = c.tg.Send(msg)
 	return err
 }

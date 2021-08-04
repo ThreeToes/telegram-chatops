@@ -73,7 +73,6 @@ to allow the pipeline to publish SNS messages
 
 # Todo
 * Add webhooks so the bot can answer questions about pipeline statuses
-    * Pipeline execution status
     * ~~List pipelines~~
     * ~~Get pipeline statuses~~
     * Start pipeline execution
